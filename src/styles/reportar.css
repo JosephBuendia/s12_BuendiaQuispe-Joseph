@@ -309,12 +309,6 @@ select option {
   margin: 0;
 }
 
-
-  .nav-links { display: none; }
-}
-
-
-
 /* ===== Semana 9: cotizador en vivo ===== */
 .cotizacion-box {
   margin: 0.5rem 0 1.25rem;
