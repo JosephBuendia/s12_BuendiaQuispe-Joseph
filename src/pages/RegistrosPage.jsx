@@ -18,6 +18,7 @@ export default function RegistrosPage() {
   const [tab, setTab] = useState("registros");
   const [incidencias, setIncidencias] = useState([]);
   const [pagos, setPagos] = useState([]);
+  const [alertas, setAlertas] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
@@ -33,11 +34,12 @@ export default function RegistrosPage() {
   const cargar = useCallback(async () => {
     setCargando(true);
     setError("");
-    const [i, p] = await Promise.all([api.listarIncidencias(), api.listarPagos()]);
-    if ([i, p].some((r) => r.status === 401)) { logoutRef.current(); return; } // sesión vencida
+    const [i, p, a] = await Promise.all([api.listarIncidencias(), api.listarPagos(), api.misAlertas()]);
+    if ([i, p, a].some((r) => r.status === 401)) { logoutRef.current(); return; } // sesión vencida
     setIncidencias(i.exito ? i.datos : []);
     setPagos(p.exito ? p.datos : []);
-    const fallo = [i, p].find((r) => !r.exito);
+    setAlertas(a.exito ? a.datos : []);
+    const fallo = [i, p, a].find((r) => !r.exito);
     if (fallo) setError(fallo.mensaje);
     setCargando(false);
   }, []);
@@ -122,7 +124,7 @@ export default function RegistrosPage() {
       {aviso && <p className="pz-mensaje" role="status">{aviso}</p>}
 
       <div className="pz-tabs" role="tablist">
-        {[["registros", `Mis reportes (${incidencias.length})`], ["pagos", `Historial de pagos (${pagos.length})`]].map(([id, texto]) => (
+        {[["registros", `Mis reportes (${incidencias.length})`], ["alertas", `Mis alertas (${alertas.length})`], ["pagos", `Historial de pagos (${pagos.length})`]].map(([id, texto]) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id}
             className={`pz-tab ${tab === id ? "activa" : ""}`} onClick={() => { setTab(id); setAviso(""); }}>{texto}</button>
         ))}
@@ -148,6 +150,27 @@ export default function RegistrosPage() {
                 </tr>
               ))}
               {!incidencias.length && <tr><td colSpan={8} className="pz-vacio">{cargando ? "Cargando…" : "Todavía no has hecho ningún reporte."}</td></tr>}
+            </tbody>
+          </table>
+        )}
+
+        {tab === "alertas" && (
+          <table className="pz-tabla">
+            <thead><tr><th>Alerta</th><th>Ubicación</th><th>Estado</th><th>Heridos</th><th>Cita en el Hospital</th><th>Fecha</th></tr></thead>
+            <tbody>
+              {alertas.map((x) => (
+                <tr key={x.codigo_alerta}>
+                  <td className="pz-codigo">{x.codigo_alerta}</td>
+                  <td>{x.ubicacion}</td>
+                  <td><EstadoBadge valor={x.estado_alerta} /></td>
+                  <td>{x.hay_heridos ? "Sí" : "No"}</td>
+                  <td>{x.codigo_cita
+                    ? <><span className="pz-codigo">{x.codigo_cita}</span> <EstadoBadge valor={x.estado_cita} /><br /><small>{x.especialidad}</small></>
+                    : "—"}</td>
+                  <td>{fecha(x.fecha_registro)}</td>
+                </tr>
+              ))}
+              {!alertas.length && <tr><td colSpan={6} className="pz-vacio">{cargando ? "Cargando…" : "No tienes alertas de auxilio registradas."}</td></tr>}
             </tbody>
           </table>
         )}

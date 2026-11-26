@@ -97,6 +97,14 @@ export default function PanelPage() {
     setAviso(`Alerta ${alerta.codigo_seguimiento}: ${etiqueta(estado)}.`);
   }
 
+  async function derivar(alerta) {
+    if (!window.confirm(`¿Derivar la alerta ${alerta.codigo_seguimiento} al Hospital? Se creará una cita de emergencia.`)) return;
+    const r = await api.derivarAlerta(alerta.codigo_seguimiento);
+    if (!r.exito) { setAviso(r.mensaje); return; }
+    setAlertas((lista) => lista.map((x) => x.codigo_seguimiento === alerta.codigo_seguimiento ? { ...x, estado: "derivado", hay_heridos: true } : x));
+    setAviso(`Alerta ${alerta.codigo_seguimiento} derivada · cita de emergencia ${r.datos.codigo_cita}.`);
+  }
+
   // ---------- acceso ----------
   if (!usuario) {
     return (
@@ -207,9 +215,14 @@ export default function PanelPage() {
                   <td>{fecha(x.fecha_registro)}</td>
                   <td>
                     {x.estado === "derivado" ? <small>Derivada al hospital</small> : (
-                      <select value={x.estado} onChange={(e) => cambiarAlerta(x, e.target.value)} aria-label={`Estado de ${x.codigo_seguimiento}`}>
-                        {ESTADOS_ALERTA.map((e) => <option key={e} value={e}>{etiqueta(e)}</option>)}
-                      </select>
+                      <div className="pz-acciones">
+                        <select value={x.estado} onChange={(e) => cambiarAlerta(x, e.target.value)} aria-label={`Estado de ${x.codigo_seguimiento}`}>
+                          {ESTADOS_ALERTA.map((e) => <option key={e} value={e}>{etiqueta(e)}</option>)}
+                        </select>
+                        {(x.estado === "registrado" || x.estado === "en_proceso") && (
+                          <button type="button" className="pz-btn" onClick={() => derivar(x)}>Derivar a hospital</button>
+                        )}
+                      </div>
                     )}
                   </td>
                 </tr>
