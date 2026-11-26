@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import "../styles/auth-modal.css"; // estilos propios del modal: así se ven igual en TODAS las páginas
 
 export default function AuthModal() {
   const { modal, abrirModal, cerrarModal, login, registrar } = useAuth();
@@ -79,6 +80,9 @@ export default function AuthModal() {
           </form>
         )}
       </div>
+    </div>
+  );
+}
     </div>
   );
 }
