@@ -5,6 +5,7 @@ import { useModal } from "../hooks/usePageStyles";
 import { soles } from "../utils/formato";
 import * as api from "../api/panel.api.js";
 import EstadoBadge from "../components/EstadoBadge";
+import ConfirmarModal from "../components/ConfirmarModal";
 import { etiqueta, fecha } from "../utils/panel";
 import "../styles/panel-sz.css";
 
@@ -28,6 +29,8 @@ export default function PanelPage() {
   const [detalle, setDetalle] = useState(null); // incidencia abierta en el modal
   const [form, setForm] = useState({ estado: "PENDIENTE", respuesta: "" });
   const [guardando, setGuardando] = useState(false);
+  const [confirmar, setConfirmar] = useState(null); // { tipo: "derivar" | "eliminar", item }
+  const [ocupado, setOcupado] = useState(false);
 
   const logoutRef = useRef(logout);
   logoutRef.current = logout;
@@ -49,6 +52,7 @@ export default function PanelPage() {
 
   const cerrarDetalle = useCallback(() => setDetalle(null), []);
   useModal(Boolean(detalle), cerrarDetalle);
+  const cancelarConfirmar = useCallback(() => { if (!ocupado) setConfirmar(null); }, [ocupado]);
 
   function cambiarTab(t) { setTab(t); setFiltro(""); setBusqueda(""); setAviso(""); }
 
@@ -83,7 +87,6 @@ export default function PanelPage() {
   }
 
   async function borrarIncidencia(inc) {
-    if (!window.confirm(`¿Eliminar la incidencia ${inc.codigo}? Esta acción no se puede deshacer.`)) return;
     const r = await api.eliminarIncidencia(inc.codigo);
     if (!r.exito) { setAviso(r.mensaje); return; } // p. ej. 409: tiene pagos registrados
     setIncidencias((lista) => lista.filter((x) => x.codigo !== inc.codigo));
@@ -97,8 +100,15 @@ export default function PanelPage() {
     setAviso(`Alerta ${alerta.codigo_seguimiento}: ${etiqueta(estado)}.`);
   }
 
+  async function ejecutarConfirmacion() {
+    setOcupado(true);
+    if (confirmar.tipo === "derivar") await derivar(confirmar.item);
+    else await borrarIncidencia(confirmar.item);
+    setOcupado(false);
+    setConfirmar(null);
+  }
+
   async function derivar(alerta) {
-    if (!window.confirm(`¿Derivar la alerta ${alerta.codigo_seguimiento} al Hospital? Se creará una cita de emergencia.`)) return;
     const r = await api.derivarAlerta(alerta.codigo_seguimiento);
     if (!r.exito) { setAviso(r.mensaje); return; }
     setAlertas((lista) => lista.map((x) => x.codigo_seguimiento === alerta.codigo_seguimiento ? { ...x, estado: "derivado", hay_heridos: true } : x));
@@ -191,7 +201,7 @@ export default function PanelPage() {
                   <td>{fecha(x.fecha_registro)}</td>
                   <td className="pz-acciones">
                     <button type="button" className="pz-btn" onClick={() => abrirDetalle(x)}>Gestionar</button>
-                    <button type="button" className="pz-btn pz-peligro" onClick={() => borrarIncidencia(x)}>Eliminar</button>
+                    <button type="button" className="pz-btn pz-peligro" onClick={() => setConfirmar({ tipo: "eliminar", item: x })}>Eliminar</button>
                   </td>
                 </tr>
               ))}
@@ -220,7 +230,7 @@ export default function PanelPage() {
                           {ESTADOS_ALERTA.map((e) => <option key={e} value={e}>{etiqueta(e)}</option>)}
                         </select>
                         {(x.estado === "registrado" || x.estado === "en_proceso") && (
-                          <button type="button" className="pz-btn" onClick={() => derivar(x)}>Derivar a hospital</button>
+                          <button type="button" className="pz-btn" onClick={() => setConfirmar({ tipo: "derivar", item: x })}>Derivar a hospital</button>
                         )}
                       </div>
                     )}
@@ -250,6 +260,19 @@ export default function PanelPage() {
           </table>
         )}
       </div>
+
+      <ConfirmarModal
+        abierto={Boolean(confirmar)}
+        peligro={confirmar?.tipo === "eliminar"}
+        ocupado={ocupado}
+        titulo={confirmar?.tipo === "derivar" ? "Derivar al Hospital" : "Eliminar incidencia"}
+        texto={confirmar?.tipo === "derivar"
+          ? `Se creará una cita de emergencia en el Hospital para la alerta ${confirmar?.item.codigo_seguimiento} (${confirmar?.item.ubicacion}). La alerta pasará a «derivado».`
+          : `Vas a eliminar la incidencia ${confirmar?.item?.codigo}. Esta acción no se puede deshacer.`}
+        textoBoton={confirmar?.tipo === "derivar" ? "Derivar a hospital" : "Eliminar"}
+        onConfirmar={ejecutarConfirmacion}
+        onCancelar={cancelarConfirmar}
+      />
 
       {detalle && (
         <div className="pz-overlay" onClick={(e) => e.target === e.currentTarget && cerrarDetalle()}>

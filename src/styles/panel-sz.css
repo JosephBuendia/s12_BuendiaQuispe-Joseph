@@ -64,3 +64,9 @@
 .pz-modal .pz-tabs { margin-bottom: 0.5rem; }
 .pz-modal .pz-mensaje { margin: 0.5rem 0 0; }
 .pz-cabecera .pz-acciones { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+/* Confirmación propia (ConfirmarModal) */
+.pz-confirmar { max-width: 420px; }
+.pz-confirmar p { margin: 0; color: var(--slate-400); line-height: 1.5; font-size: 0.95rem; }
+.btn.pz-btn-peligro { background: #b91c1c; border-color: #ef4444; color: #fff; }
+.btn.pz-btn-peligro:hover { background: #991b1b; }
