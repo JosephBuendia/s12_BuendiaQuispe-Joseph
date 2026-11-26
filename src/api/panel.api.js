@@ -38,3 +38,7 @@ export const verificarPago = (id) => pedir(`/pagos/${encodeURIComponent(id)}/ver
 // Si la entidad rechaza, el servidor responde 402 con el motivo en "mensaje": llega como { exito: false, mensaje }.
 export const pagarConTarjeta = (body) => pedir("/pagos/tarjeta", { method: "POST", body });
 export const pagarConBilletera = (body) => pedir("/pagos/billetera", { method: "POST", body });
+
+// ---------- Derivación Serenazgo -> Hospital ----------
+export const derivarAlerta = (codigo) => pedir(`/alertas/${encodeURIComponent(codigo)}/derivar`, { method: "POST" });
+export const misAlertas = () => pedir("/alertas/mias");
